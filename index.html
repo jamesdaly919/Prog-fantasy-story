@@ -12,6 +12,7 @@
             --xp-blue: #2980b9; --mana-cyan: #00bcd4; --time-silver: #bdc3c7;
             --equip-green: #2ecc71; --combat-red: #8b0000; --sp-orange: #e67e22;
             --dungeon-teal: #1abc9c; --craft-bronze: #cd7f32; --ascend-white: #ffffff;
+            --parry-silver: #bdc3c7;
         }
 
         body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Georgia', serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -38,7 +39,7 @@
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #choices-container { display: flex; flex-direction: column; gap: 15px; }
+        #choices-container { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-bottom: 20px;}
 
         button.choice-btn {
             background-color: var(--panel-bg); color: var(--text-main); border: 1px solid var(--accent-gold);
@@ -125,48 +126,48 @@
         let postLevelUpTarget = ""; let eventRateModifier = 0; let previousHub = "village_square"; 
         let equipBonuses = { weapon: { stat: null, val: 0 }, armor: { stat: null, val: 0 }, accessory: { stat: null, val: 0 } };
 
-        // --- ENEMY DATABASE (Updated base attack values for RNG scaling) ---
+        // --- ENEMY DATABASE ---
         const enemies = {
-            "timber_wolf": { name: "Timber Wolf", hp: 15, maxHp: 15, atk: 4, xp: 12, winTarget: "combat_victory_wolf" },
-            "bandit": { name: "Desperate Bandit", hp: 12, maxHp: 12, atk: 3, xp: 10, winTarget: "combat_victory_bandit" },
-            "senior_disciple": { name: "Senior Disciple", hp: 35, maxHp: 35, atk: 6, xp: 30, winTarget: "combat_victory_senior" },
-            "crystal_hound": { name: "Crystal Hound", hp: 18, maxHp: 18, atk: 5, xp: 20, winTarget: "dungeon_depths" },
-            "fracture_sentinel": { name: "Fracture Sentinel (Boss)", hp: 50, maxHp: 50, atk: 8, xp: 60, winTarget: "dungeon_victory" },
-            "kaelen": { name: "Kaelen Vane (Rival)", hp: 38, maxHp: 38, atk: 6, xp: 50, winTarget: "combat_victory_kaelen" },
-            "academy_champion": { name: "Grand Champion", hp: 85, maxHp: 85, atk: 9, xp: 100, winTarget: "combat_victory_champion" }
+            "timber_wolf": { name: "Timber Wolf", hp: 8, maxHp: 8, atk: 2, xp: 12, stunned: 0, winTarget: "combat_victory_wolf" },
+            "bandit": { name: "Desperate Bandit", hp: 10, maxHp: 10, atk: 2, xp: 10, stunned: 0, winTarget: "combat_victory_bandit" },
+            "senior_disciple": { name: "Senior Disciple", hp: 35, maxHp: 35, atk: 6, xp: 30, stunned: 0, winTarget: "combat_victory_senior" },
+            "crystal_hound": { name: "Crystal Hound", hp: 14, maxHp: 14, atk: 3, xp: 20, stunned: 0, winTarget: "dungeon_depths" },
+            "fracture_sentinel": { name: "Fracture Sentinel (Boss)", hp: 50, maxHp: 50, atk: 8, xp: 60, stunned: 0, winTarget: "dungeon_victory" },
+            "kaelen": { name: "Kaelen Vane (Rival)", hp: 38, maxHp: 38, atk: 6, xp: 50, stunned: 0, winTarget: "combat_victory_kaelen" },
+            "academy_champion": { name: "Grand Champion", hp: 85, maxHp: 85, atk: 9, xp: 100, stunned: 0, winTarget: "combat_victory_champion" }
         };
 
-        // --- STORY DATA (NARRATIVE OVERHAUL) ---
+        // --- STORY DATA ---
         const story = {
             "start": {
-                text: "<span class='location-text'>Location: Oakhaven Estate Fields</span>You are an 'Unbound'—a mortal born without the internal magic to manipulate the threads of reality. For sixteen years, you have lived as property of the noble House Vane, working the mud-soaked fields of their provincial estate. Your parents died in the mines, leaving you nothing but their debts and a ragged tunic.<br><br>The gray morning sky is oppressive. The local overseer cracks a whip against a fence post, barking your name. You have two choices: submit to another day of soul-crushing labor to slowly build your mortal strength, or risk the deadly Whispering Woods to hunt for magical herbs that might force an Awakening.",
+                text: "<span class='location-text'>Location: Oakhaven Estate Fields</span>You are an 'Unbound'—a mortal born without the internal magic to manipulate the threads of reality. For sixteen years, you have lived as property of the noble House Vane.<br><br>The gray morning sky is oppressive. The local overseer cracks a whip, barking your name. You have two choices: submit to another day of labor to slowly build your mortal strength, or risk the Whispering Woods to hunt for magical herbs.",
                 choices: [
                     { text: "Submit to the grind. Work the fields. (Takes 1 Day, Builds physical Vigor)", target: "work_fields", effect: () => { modifyStat('vigor', 1); modifyWealth(2); addXp(2); advanceTime(1); } },
                     { text: "Sneak into the Whispering Woods. (Takes 1 Day, Relies on Agility/Fortune)", target: "hunt_woods", effect: () => { modifyStat('agility', 1); modifyStat('fortune', 1); addXp(3); advanceTime(1); } }
                 ]
             },
             "work_fields": {
-                text: "<span class='location-text'>Location: Oakhaven Fields</span>You grip the rusted scythe, harvesting razor-stalk wheat until your hands bleed. The work is agonizing, but you can feel your muscles hardening. You survive another day, earning two meager coppers.<br><br>As the sun sets, a gilded carriage rattles down the dirt road. Inside sits Kaelen of House Vane—the pampered heir who regularly uses field hands for target practice. Just last week, he had you beaten for not bowing fast enough. He looks down at you through the window, an arrogant, mocking smirk on his pristine face.",
+                text: "<span class='location-text'>Location: Oakhaven Fields</span>You harvest razor-stalk wheat until your hands bleed. The work is agonizing, but you can feel your muscles hardening.<br><br>As the sun sets, a gilded carriage rattles down the dirt road. Inside sits Kaelen of House Vane—the pampered heir. He looks down at you through the window, an arrogant, mocking smirk on his pristine face.",
                 choices: [
-                    { text: "Glare back at him. Swear to the Heavens you will break him one day. (+2 XP)", target: "village_square", effect: () => { addSkill("Rival: Kaelen"); addXp(2); setFlag("met_kaelen"); previousHub = "village_square"; } },
-                    { text: "Keep your head down. Pride gets slaves killed. Save your energy. (+2 XP)", target: "village_square", effect: () => { modifyStat('clarity', 1); addXp(2); previousHub = "village_square"; } }
+                    { text: "Glare back at him. Swear vengeance. (+2 XP)", target: "village_square", effect: () => { addSkill("Rival: Kaelen"); addXp(2); setFlag("met_kaelen"); previousHub = "village_square"; } },
+                    { text: "Keep your head down. Save your energy. (+2 XP)", target: "village_square", effect: () => { modifyStat('clarity', 1); addXp(2); previousHub = "village_square"; } }
                 ]
             },
             "hunt_woods": {
-                text: "<span class='location-text'>Location: The Whispering Woods</span>The woods are strictly off-limits to the Unbound. Cultivated beasts roam the shadows, and the penalty for poaching is death. Yet, the old tales speak of natural treasures here that can rewrite a mortal's destiny. You use your small stature to slip past the estate guards.<br><br>Deep in a damp, rotting hollow, you spot a faint glow. It is a patch of luminescent Blue-Vein Moss. It pulses with raw, untamed magical energy.",
+                text: "<span class='location-text'>Location: The Whispering Woods</span>The woods are strictly off-limits to the Unbound. You use your small stature to slip past the estate guards.<br><br>Deep in a damp, rotting hollow, you spot a faint glow. It is a patch of luminescent Blue-Vein Moss.",
                 choices: [
                     { text: "Eat the moss raw. Force an Awakening. (Lose 5 HP, Gain Resonance, +5 XP)", target: "eat_moss", effect: () => { modifyHp(-5); modifyStat('resonance', 2); removeSkill("Ignorant"); addSkill("Poison Resistance"); addXp(5); } },
-                    { text: "Harvest it carefully. It's worth a fortune to the right buyer. (+2 XP)", target: "village_square", effect: () => { addItem("Blue-Vein Moss"); addXp(2); previousHub = "village_square"; } }
+                    { text: "Harvest it carefully to sell. (+2 XP)", target: "village_square", effect: () => { addItem("Blue-Vein Moss"); addXp(2); previousHub = "village_square"; } }
                 ]
             },
             "eat_moss": {
-                text: "You shove the glowing moss into your mouth. Instantly, pain rips through your veins like liquid fire. You collapse into the mud, gasping for air, clutching your chest as your heart threatens to burst.<br><br>But as the agony subsides, the world looks... different. You can see faint, shimmering lines in the air. You feel a thrumming energy settling in your core. You have survived the refinement. You have awakened your Resonance.",
+                text: "You shove the glowing moss into your mouth. Instantly, pain rips through your veins like liquid fire. You collapse into the mud, gasping for air.<br><br>But as the agony subsides, the world looks different. You have survived the refinement. You have awakened your Resonance.",
                 choices: [{ text: "Stumble back to the village square.", target: "village_square", effect: () => { previousHub = "village_square"; } }]
             },
             
             // --- MAIN HUB ---
             "village_square": {
-                text: "<span class='location-text'>Location: Oakhaven Village Square</span>You stand in the muddy center of Oakhaven. The village is a dreary collection of huts, dominated by the distant, looming manor of House Vane. A shimmering, jagged tear in reality—a 'Fracture'—has recently opened near the treeline, leaking dangerous mana into the air. A dirt road stretches east, leading toward the legendary Capital.",
+                text: "<span class='location-text'>Location: Oakhaven Village Square</span>You stand in the muddy center of Oakhaven. A shimmering, jagged tear in reality—a 'Fracture'—has recently opened near the treeline. A dirt road stretches east toward the legendary Capital.",
                 choices: [
                     { text: "Hunt beasts in the Whispering Woods (Combat)", target: "START_COMBAT_WOLF", effect: () => { advanceTime(1); } },
                     { text: "Approach the Ivory Consortium Merchant Tent.", target: "merchant_tent" },
@@ -178,53 +179,53 @@
                 ]
             },
             "merchant_tent": {
-                text: "Master Silas, a wealthy merchant of the Ivory Consortium, sits behind a desk inside a lavish silk tent completely out of place in this mud-hole. 'Show me what you have, provincial, or stop wasting my time.'",
+                text: "Master Silas sits behind a desk inside a lavish silk tent.",
                 choices: [
                     { text: "Sell the Blue-Vein Moss (Gain 50 cp)", target: "merchant_tent", req: { stat: "Blue-Vein Moss", val: 1, type: "item" }, effect: () => { consumeItem("Blue-Vein Moss"); modifyWealth(50); } },
                     { text: "Leave the tent.", target: "village_square" }
                 ]
             },
             "rest_inn": {
-                text: "You pay the innkeeper your hard-earned coppers. The stew is thin and tastes of ash, and the straw bed is infested with fleas, but it beats freezing in the fields. Your mortal wounds knit slightly overnight.",
+                text: "You pay the innkeeper your hard-earned coppers. The stew is thin, but your mortal wounds knit slightly overnight.",
                 choices: [{ text: "Wake up the next morning.", target: "village_square", effect: () => { advanceTime(1); modifyWealth(-2); modifyHp(5); modifyMana(5); } }]
             },
 
-            // --- THE WHISPERING FRACTURE (DUNGEON) ---
+            // --- DUNGEON ---
             "dungeon_entrance": {
-                text: "<span class='location-text dungeon-text'>Location: The Whispering Fracture</span>You step up to the rift. The air hums with raw, jagged Resonance that makes your teeth ache. Time dilates heavily inside these localized anomalies; exploring this will cost you 5 Days of real-world time. Once you step through the tear, the spatial lock will seal behind you. You must fight your way to the core, or die trying.",
+                text: "<span class='location-text dungeon-text'>Location: The Whispering Fracture</span>You step up to the rift. The air hums with raw, jagged Resonance. Time dilates heavily inside these localized anomalies; exploring this will cost you 5 Days of real-world time.",
                 choices: [
                     { text: "Step into the Fracture. (Takes 5 Days)", target: "START_COMBAT_HOUND", effect: () => { advanceTime(5); } },
                     { text: "It's too dangerous. Turn back.", target: "village_square" }
                 ]
             },
             "dungeon_depths": {
-                text: "<span class='location-text dungeon-text'>Location: Fracture Depths</span>The Crystal Hound shatters into a thousand pieces of glass, leaving behind a jagged <b>Resonance Crystal</b>. You catch your breath and step deeper into the rift. Before you lies a shimmering pool of liquid mana, and beyond that, a massive stone door vibrating with an ominous, heavy power.",
+                text: "<span class='location-text dungeon-text'>Location: Fracture Depths</span>The Crystal Hound shatters, leaving behind a jagged <b>Resonance Crystal</b>. Before you lies a shimmering pool of liquid mana, and beyond that, a massive stone door vibrating with power.",
                 choices: [
                     { text: "Drink from the pool before opening the door. (Restores Full HP/Mana)", target: "START_COMBAT_BOSS", effect: () => { addItem("Resonance Crystal"); player.hp = player.maxHp; player.mana = player.maxMana; } },
                     { text: "Ignore the pool and kick the door open.", target: "START_COMBAT_BOSS", effect: () => { addItem("Resonance Crystal"); } }
                 ]
             },
             "dungeon_victory": {
-                text: "<span class='location-text dungeon-text'>Location: Fracture Core - Cleared!</span>The towering Sentinel crumbles to dust, letting out a final, deafening groan. The rift begins to destabilize, the spatial walls collapsing inward. On the pedestal behind the boss, you find a beautiful piece of jewelry pulsing with magic, alongside a shard of pure, crystallized destiny.",
+                text: "<span class='location-text dungeon-text'>Location: Fracture Core - Cleared!</span>The towering Sentinel crumbles to dust. The rift begins to destabilize. On the pedestal behind the boss, you find a beautiful piece of jewelry pulsing with magic, alongside a shard of pure, crystallized destiny.",
                 choices: [
                     { text: "Take the loot and escape! (Gain Resonance Amulet, Loom Fragment: Resonance)", target: "village_square", effect: () => { addItem("Resonance Amulet"); addItem("Loom Fragment: Resonance"); modifyWealth(50); setFlag("cleared_fracture"); } }
                 ]
             },
 
-            // --- TRAVEL & CITY ---
+            // --- CITY & SLUMS ---
             "travel_road": {
-                text: "<span class='location-text'>Location: The Kingsroad</span>You walk the long, winding dirt path away from the misery of Oakhaven. The journey takes five grueling days of sleeping under the stars and eating scavenged roots. But finally, the massive white-stone walls and floating spires of Aethelgard come into view.",
+                text: "<span class='location-text'>Location: The Kingsroad</span>You walk the long dirt path. Finally, the massive white-stone walls of Aethelgard come into view.",
                 choices: [{ text: "Approach the Capital Gates.", target: "capital_gates", effect: () => { eventRateModifier = 0; } } ]
             },
             "capital_gates": {
-                text: "<span class='location-text'>Location: Aethelgard City Gates</span>The capital is breathtaking. Cultivators fly on swords overhead, ignoring the rabble below. Two armored guards carrying halberds glowing with runic arrays block the massive iron gate.<br><br>'Entry fee is 5 coppers, provincial,' one of them grunts, holding out a gauntleted hand.",
+                text: "<span class='location-text'>Location: Aethelgard City Gates</span>Two armored guards carrying halberds glowing with runic arrays block the massive iron gate.<br><br>'Entry fee is 5 coppers, provincial,' one of them grunts.",
                 choices: [
                     { text: "Pay the fee and enter the city. (Cost: 5 cp)", target: "capital_slums", req: { stat: "wealth", val: 5, type: "currency" }, effect: () => { modifyWealth(-5); previousHub = "capital_slums"; } },
                     { text: "Turn back and walk to Oakhaven. (Takes 5 days)", target: "village_square", effect: () => { advanceTime(5); eventRateModifier = 0.35; previousHub = "village_square"; } }
                 ]
             },
             "capital_slums": {
-                text: "<span class='location-text'>Location: Aethelgard Lower District</span>The slums are a claustrophobic maze of mud, smoke, and desperate ambition. To the north lie the grand, unyielding gates of the Celestial Academy—the only true path to power in this world. To the east, the clanging of the Slag Forge rings out near the Smuggler's Run.",
+                text: "<span class='location-text'>Location: Aethelgard Lower District</span>The slums are a claustrophobic maze of mud, smoke, and desperate ambition. To the north lie the grand gates of the Celestial Academy. To the east, the clanging of the Slag Forge rings out.",
                 choices: [
                     { text: "<span class='ascend-text'>Climb the Golden Stairway (Ascension Ritual)</span>", target: "ascension_end", req: { type: "ascension" } },
                     { text: "Approach the Celestial Academy Gates.", target: "academy_gates" },
@@ -237,17 +238,17 @@
                 ]
             },
             
-            // --- ENDGAME: ASCENSION ---
+            // --- ENDGAME ---
             "ascension_end": {
-                text: "<span class='location-text ascend-text'>Location: The Core of the Loom</span>You step onto the ethereal golden stairway that has manifested in the center of the slums. The three Loom Fragments float around you, orbiting your body like obedient stars. You have broken past the mortal bottleneck and reached the absolute zenith of physical power. As you climb, the Threads of Fate literally bow to your will. You are no longer Unbound. You are a god.<br><br><b>Congratulations. You have completed the Ascendant's Loom!</b>",
+                text: "<span class='location-text ascend-text'>Location: The Core of the Loom</span>You step onto the ethereal golden stairway. The three Loom Fragments float around you like obedient stars. You have broken past the mortal bottleneck and reached the absolute zenith of physical power. As you climb, the Threads of Fate bow to your will. You are no longer Unbound. You are a god.<br><br><b>Congratulations. You have completed the Ascendant's Loom!</b>",
                 choices: [
                     { text: "Sever your mortal thread. (End Game & Restart)", target: "start", effect: () => { localStorage.removeItem('ascendantsLoomSave'); location.reload(); } }
                 ]
             },
 
-            // --- CRAFTING: THE SLAG FORGE ---
+            // --- CRAFTING ---
             "slag_forge": {
-                text: "<span class='location-text craft-text'>Location: The Slag Forge</span>A grizzled half-orc hammers away at an anvil that crackles with chaotic magical sparks. He spits a glob of tar into the fire. 'I can fuse your basic mundane gear with cultivated materials. Won't charge you a copper, but don't ask where I learned the techniques.'",
+                text: "<span class='location-text craft-text'>Location: The Slag Forge</span>A grizzled half-orc hammers away at an anvil that crackles with chaotic magical sparks. 'I can fuse your basic mundane gear with cultivated materials.'",
                 choices: [
                     { text: "Craft Rune-Etched Blade (Req: Iron Dagger, Resonance Crystal)", target: "slag_forge", req: { type: "craft", items: ["Iron Dagger", "Resonance Crystal"] }, effect: () => { consumeItem("Iron Dagger"); consumeItem("Resonance Crystal"); addItem("Rune-Etched Blade"); } },
                     { text: "Craft Hunter's Leather (Req: Traveler's Cloak, Wolf Pelt)", target: "slag_forge", req: { type: "craft", items: ["Traveler's Cloak", "Wolf Pelt"] }, effect: () => { consumeItem("Traveler's Cloak"); consumeItem("Wolf Pelt"); addItem("Hunter's Leather"); } },
@@ -255,72 +256,77 @@
                 ]
             },
 
-            // --- THE SILENT CHOIR ---
+            // --- SILENT CHOIR ---
             "dark_alley": {
-                text: "<span class='location-text'>Location: Smuggler's Alley</span>The shadows in this particular alleyway cling to the stone walls like thick cobwebs. It feels as though the darkness itself is breathing, watching your every move.",
+                text: "<span class='location-text'>Location: Smuggler's Alley</span>The shadows in this alleyway cling to the stone walls like thick cobwebs.",
                 choices: [
                     { text: "[Spend 5 Mana] Channel Resonance to pierce the illusion.", target: "silent_choir_hideout", req: { stat: "resonance", val: 2, type: "stat" }, effect: () => modifyMana(-5) },
                     { text: "Leave the alleyway. It's too creepy.", target: "capital_slums" }
                 ]
             },
             "silent_choir_hideout": {
-                text: "<span class='location-text event-text'>Location: The Whisper Vault</span>The illusion of the dead-end shatters, revealing a subterranean sanctum lit by floating silver flames. An assassin in a faceless porcelain mask bows to you. 'Few mortals can see through the weave. The Silent Choir extends an invitation to a new blade.'",
+                text: "<span class='location-text event-text'>Location: The Whisper Vault</span>The illusion of the dead-end shatters. An assassin in a faceless porcelain mask bows to you. 'The Silent Choir extends an invitation to a new blade.'",
                 choices: [{ text: "Swear the Oath of Shadows.", target: "capital_slums", effect: () => { changeFaction("Silent Choir"); addSkill("Shadow Strike"); setFlag("joined_choir"); } }]
             },
 
             // --- BLACK MARKET ---
             "black_market": {
-                text: "<span class='location-text'>Location: The Smuggler's Run</span>Desperate figures peddle stolen goods and blood-stained gear from broken carts. It's a dangerous place to flash coin, but the wares are essential for survival.",
+                text: "<span class='location-text'>Location: The Smuggler's Run</span>Desperate figures peddle stolen goods and blood-stained gear.",
                 choices: [
-                    { text: "Buy an Iron Dagger (Cost: 30 cp)", target: "black_market", req: { stat: "wealth", val: 30, type: "currency" }, effect: () => { modifyWealth(-30); addItem("Iron Dagger"); } },
-                    { text: "Buy a Traveler's Cloak (Cost: 20 cp)", target: "black_market", req: { stat: "wealth", val: 20, type: "currency" }, effect: () => { modifyWealth(-20); addItem("Traveler's Cloak"); } },
+                    { text: "Buy an Iron Dagger (Weapon. Cost: 30 cp)", target: "black_market", req: { stat: "wealth", val: 30, type: "currency" }, effect: () => { modifyWealth(-30); addItem("Iron Dagger"); } },
+                    { text: "Buy a Traveler's Cloak (Armor. Cost: 20 cp)", target: "black_market", req: { stat: "wealth", val: 20, type: "currency" }, effect: () => { modifyWealth(-20); addItem("Traveler's Cloak"); } },
+                    { text: "Buy an Iron Buckler (Accessory. Unlocks 'Block'. Cost: 25 cp)", target: "black_market", req: { stat: "wealth", val: 25, type: "currency" }, effect: () => { modifyWealth(-25); addItem("Iron Buckler"); } },
                     { text: "Return to the Slums.", target: "capital_slums" }
                 ]
             },
             
             // --- MENUS ---
             "inventory_menu": {
-                text: "<span class='location-text'>Inventory & Equipment</span>You take a moment to inspect your spatial storage and adjust your gear. Only the strong survive, and gear makes the difference between life and a snapped thread.",
+                text: "<span class='location-text'>Inventory & Equipment</span>You take a moment to inspect your spatial storage and adjust your gear.",
                 choices: [
                     { text: "Equip Iron Dagger (Weapon: +1 Vigor)", target: "inventory_menu", req: { stat: "Iron Dagger", val: 1, type: "item" }, effect: () => { equipItem("weapon", "Iron Dagger", "vigor", 1); } },
                     { text: "Equip Rune-Etched Blade (Weapon: +3 Vigor, +1 Res)", target: "inventory_menu", req: { stat: "Rune-Etched Blade", val: 1, type: "item" }, effect: () => { equipItem("weapon", "Rune-Etched Blade", "vigor", 3); player.stats.resonance += 1; recalculateDerived(); } },
                     { text: "Equip Traveler's Cloak (Armor: +1 Agility)", target: "inventory_menu", req: { stat: "Traveler's Cloak", val: 1, type: "item" }, effect: () => { equipItem("armor", "Traveler's Cloak", "agility", 1); } },
                     { text: "Equip Hunter's Leather (Armor: +2 Agility, +1 Vigor)", target: "inventory_menu", req: { stat: "Hunter's Leather", val: 1, type: "item" }, effect: () => { equipItem("armor", "Hunter's Leather", "agility", 2); player.stats.vigor += 1; recalculateDerived(); } },
+                    { text: "Equip Iron Buckler (Accessory: +1 Vigor, Unlocks Block)", target: "inventory_menu", req: { stat: "Iron Buckler", val: 1, type: "item" }, effect: () => { equipItem("accessory", "Iron Buckler", "vigor", 1); } },
                     { text: "Equip Resonance Amulet (Accessory: +2 Resonance)", target: "inventory_menu", req: { stat: "Resonance Amulet", val: 1, type: "item" }, effect: () => { equipItem("accessory", "Resonance Amulet", "resonance", 2); } },
                     { text: "Equip Vane Signet Ring (Accessory: +1 Vigor, +1 Resonance)", target: "inventory_menu", req: { stat: "Vane Signet Ring", val: 1, type: "item" }, effect: () => { equipItem("accessory", "Vane Signet Ring", "vigor", 1); player.stats.resonance += 1; recalculateDerived(); } }, 
                     { text: "Finish Managing.", target: "RETURN_TO_HUB" }
                 ]
             },
             "skill_tree_menu": {
-                text: "<span class='location-text'>The Soul Space</span>You close your eyes and focus inward, observing the glowing threads of your own destiny. Here, you can expend your accumulated Skill Points (SP) to permanently forge new combat concepts into your soul.",
+                text: "<span class='location-text'>The Soul Space</span>You close your eyes and focus inward. Expend your Skill Points (SP) to permanently forge new combat concepts into your soul.",
                 choices: [
-                    { text: "Learn 'Heavy Strike' (Cost: 1 SP. Uses 2 HP for massive physical damage).", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Heavy Strike", stat: "vigor", statVal: 3 }, effect: () => { player.sp -= 1; addSkill("Heavy Strike"); } },
-                    { text: "Learn 'Mend' (Cost: 1 SP. Uses 5 Mana to heal 5 HP in combat).", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Mend", stat: "clarity", statVal: 2 }, effect: () => { player.sp -= 1; addSkill("Mend"); } },
+                    { text: "Learn 'Parry' (Req: Agility 3. Cost: 1 SP. High risk dodge that stuns the enemy.)", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Parry", stat: "agility", statVal: 3 }, effect: () => { player.sp -= 1; addSkill("Parry"); } },
+                    { text: "Learn 'Reckless Counter' (Req: Vigor 4. Cost: 1 SP. Take extra damage to deal massive damage.)", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Reckless Counter", stat: "vigor", statVal: 4 }, effect: () => { player.sp -= 1; addSkill("Reckless Counter"); } },
+                    { text: "Learn 'Staggering Blow' (Req: Vigor 3. Cost: 1 SP. Uses 1 HP. Low damage, but stuns the enemy.)", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Staggering Blow", stat: "vigor", statVal: 3 }, effect: () => { player.sp -= 1; addSkill("Staggering Blow"); } },
+                    { text: "Learn 'Heavy Strike' (Req: Vigor 3. Cost: 1 SP. Uses 2 HP for massive physical damage).", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Heavy Strike", stat: "vigor", statVal: 3 }, effect: () => { player.sp -= 1; addSkill("Heavy Strike"); } },
+                    { text: "Learn 'Mend' (Req: Clarity 2. Cost: 1 SP. Uses 5 Mana to heal 5 HP in combat).", target: "skill_tree_menu", req: { type: "skill_buy", cost: 1, skill: "Mend", stat: "clarity", statVal: 2 }, effect: () => { player.sp -= 1; addSkill("Mend"); } },
                     { text: "Return to the waking world.", target: "RETURN_TO_HUB" }
                 ]
             },
 
-            // --- ACADEMY & RIVALRY ---
+            // --- ACADEMY ---
             "academy_gates": {
-                text: "<span class='location-text'>Location: Academy Gates</span>The heavy silver gates of the Celestial Academy loom over you. A massive glowing sign, written in pure mana, hangs above them:<br><br><i>'The Academy accepts new initiates only during the Month of Seed.'</i>",
+                text: "<span class='location-text'>Location: Academy Gates</span>The heavy silver gates of the Celestial Academy loom over you. A glowing sign reads:<br><br><i>'The Academy accepts new initiates only during the Month of Seed.'</i>",
                 choices: [
                     { text: "Take the Entrance Exam. (Takes 1 Day)", target: "academy_exam", req: { type: "time", month: 4, text: "Only available in Month 4 (Seed)" }, effect: () => { advanceTime(1); } },
                     { text: "Return to the mud of the Slums.", target: "capital_slums" }
                 ]
             },
             "academy_exam": {
-                text: "<span class='location-text'>Location: The Testing Grounds</span>You stand before a massive, crystalline Resonance Stone. The proctor, an archmage in flowing blue robes, looks entirely bored with the line of peasants. 'Place your hand on the stone. Let's see if you have the Clarity and Resonance to walk the path of the Heavens.'",
+                text: "<span class='location-text'>Location: The Testing Grounds</span>You stand before a massive Resonance Stone. 'Place your hand on the stone. Let's see if you have the Clarity and Resonance to walk the path of the Heavens.'",
                 choices: [
                     { text: "Channel your power into the stone. (Requires Clarity 3, Resonance 2)", target: "exam_pass", req: { type: "complex", stat1: "clarity", val1: 3, stat2: "resonance", val2: 2 } },
                     { text: "You lack the foundation. Fail the test.", target: "capital_slums" }
                 ]
             },
             "exam_pass": {
-                text: "You push your energy into the stone. It violently erupts into a blinding azure light. The bored proctor suddenly shoots up from his chair, eyes wide in shock. 'Incredible... such raw, unbridled potential from a slum-dweller.'<br><br><span class='faction-join-text'>Welcome to the Celestial Academy, Disciple.</span>",
+                text: "The stone violently erupts into a blinding azure light. <br><br><span class='faction-join-text'>Welcome to the Celestial Academy, Disciple.</span>",
                 choices: [{ text: "Step proudly into the Academy Grounds.", target: "academy_hub", effect: () => { changeFaction("Celestial Academy"); previousHub = "academy_hub"; } }]
             },
             "academy_hub": {
-                text: "<span class='location-text'>Location: Academy Courtyard</span>You stand amidst manicured spiritual gardens and floating obelisks. Cultivators spar with magic in the distance. The air here is so dense with mana it feels heavy in your lungs.",
+                text: "<span class='location-text'>Location: Academy Courtyard</span>You stand amidst manicured spiritual gardens and floating obelisks.",
                 choices: [
                     { text: "Enter the Grand Tournament (Boss Fight. Req: Level 5+)", target: "START_COMBAT_CHAMPION", req: { stat: "level", val: 5 } },
                     { text: "Spar with Senior Disciples (Takes 1 Day. Lose 5 HP. Gain 30 XP)", target: "academy_hub", effect: () => { advanceTime(1); modifyHp(-5); addXp(30); } },
@@ -332,7 +338,7 @@
                 ]
             },
             "confront_kaelen": {
-                text: "<span class='location-text'>Location: Academy Dueling Ring</span>Kaelen Vane stands in the courtyard surrounded by sycophants. He stops laughing the moment he sees you wearing the Academy uniform. 'The mudblood thinks they belong here? I will break your foundation myself.'",
+                text: "<span class='location-text'>Location: Academy Dueling Ring</span>Kaelen Vane stops laughing the moment he sees you wearing the Academy uniform. 'The mudblood thinks they belong here? I will break your foundation myself.'",
                 choices: [
                     { text: "Draw your weapon and duel him!", target: "START_COMBAT_KAELEN" },
                     { text: "Back down. You aren't strong enough yet.", target: "academy_hub" }
@@ -340,20 +346,20 @@
             },
 
             // --- COMBAT RESOLUTION NODES ---
-            "combat_victory_wolf": { text: "<span class='location-text'>Hunt Successful!</span>The beast falls. You expertly skin it, securing a sturdy <b>Wolf Pelt</b> for crafting.", choices: [{ text: "Return to the village.", target: "village_square", effect: () => addItem("Wolf Pelt") }] },
-            "combat_victory_bandit": { text: "<span class='location-text'>Victory!</span>The bandit collapses in a pool of his own blood. You search his pockets and take his coin.", choices: [{ text: "Continue your journey.", target: "RETURN_FROM_EVENT", effect: () => modifyWealth(15) }] },
-            "combat_victory_senior": { text: "<span class='location-text'>Victory!</span>You hold your own against the senior student, earning their grudging respect and a massive surge of insight.", choices: [{ text: "Bow and exit the ring.", target: "academy_hub" }] },
+            "combat_victory_wolf": { text: "<span class='location-text'>Hunt Successful!</span>The beast falls. You expertly skin it, securing a sturdy <b>Wolf Pelt</b>.", choices: [{ text: "Return to the village.", target: "village_square", effect: () => addItem("Wolf Pelt") }] },
+            "combat_victory_bandit": { text: "<span class='location-text'>Victory!</span>The bandit collapses. You search his pockets and take his coin.", choices: [{ text: "Continue your journey.", target: "RETURN_FROM_EVENT", effect: () => modifyWealth(15) }] },
+            "combat_victory_senior": { text: "<span class='location-text'>Victory!</span>You hold your own against the senior student, earning their grudging respect.", choices: [{ text: "Bow and exit the ring.", target: "academy_hub" }] },
             "combat_victory_kaelen": {
-                text: "<span class='location-text'>Victory over Vane!</span>Kaelen lies in the dirt, his expensive robes ruined and his pride utterly shattered. You have proven that bloodline means nothing in the face of true effort. You pry his magical ring from his trembling finger. As his ego breaks, a shard of pure destiny crystalizes in the air.",
+                text: "<span class='location-text'>Victory over Vane!</span>Kaelen lies in the dirt. You pry his magical ring from his trembling finger. A shard of pure destiny crystalizes in the air.",
                 choices: [{ text: "Claim your trophies.", target: "academy_hub", effect: () => { setFlag("defeated_kaelen"); addItem("Vane Signet Ring"); addItem("Loom Fragment: Pride"); removeSkill("Rival: Kaelen"); addSkill("Legend of the Courtyard"); } }]
             },
             "combat_victory_champion": {
-                text: "<span class='location-text'>Tournament Champion!</span>The entire Academy erupts in deafening cheers as the Grand Champion falls to your might. The Headmaster floats down from the stands, personally awarding you a shard of raw, unshaped destiny.",
+                text: "<span class='location-text'>Tournament Champion!</span>The entire Academy erupts in deafening cheers as the Grand Champion falls to your might. The Headmaster personally awards you a shard of raw, unshaped destiny.",
                 choices: [{ text: "Claim your ultimate glory.", target: "academy_hub", effect: () => { setFlag("defeated_champion"); addItem("Loom Fragment: Authority"); addSkill("Grand Champion"); } }]
             },
 
             // --- SYSTEM EVENTS ---
-            "death": { text: "<span class='death-text'>Your thread on the Loom snaps.</span><br><br>Your injuries were too severe. Your vision fades to black, and the world moves on without you. The path of an Ascendant is paved with the bones of those who failed.", choices: [{ text: "Restart your journey.", target: "start", effect: () => { localStorage.removeItem('ascendantsLoomSave'); location.reload(); } }] },
+            "death": { text: "<span class='death-text'>Your thread on the Loom snaps.</span><br><br>Your injuries were too severe. The path of an Ascendant is paved with the bones of those who failed.", choices: [{ text: "Restart your journey.", target: "start", effect: () => { localStorage.removeItem('ascendantsLoomSave'); location.reload(); } }] },
             "level_up": {
                 text: "<span class='levelup-text'>LEVEL UP!</span><br><br>Through struggle, you feel the boundaries of your mortal shell expanding. Choose how you wish to direct your newfound strength. <span class='sp-text'>(You gained 1 SP!)</span>",
                 choices: [
@@ -364,7 +370,7 @@
                 ]
             },
             "level_maxed": {
-                text: "<span class='levelup-text'>MORTAL CAP REACHED</span><br><br>Your vessel groans under the weight of your own power. You have reached Level 10. Your mortal body cannot hold any more experience. To progress further, you must seek the three Loom Fragments and perform the Ascension Ritual in the Capital.",
+                text: "<span class='levelup-text'>MORTAL CAP REACHED</span><br><br>Your vessel groans under the weight of your own power. You have reached Level 10. To progress further, you must seek the three Loom Fragments and perform the Ascension Ritual in the Capital.",
                 choices: [{ text: "I understand.", target: "RETURN_FROM_LEVEL", effect: () => { player.xp = 0; } }]
             },
             "event_found_coin": { text: "<span class='event-text'>A minor stroke of Fortune. You spot a tarnished copper coin abandoned in the dirt. Every bit counts.</span>", choices: [{ text: "Pocket it.", target: "RETURN_FROM_EVENT", effect: () => modifyWealth(1) }] }
@@ -448,11 +454,10 @@
             player.hp = player.maxHp; player.mana = player.maxMana; 
         }
 
-        // --- NEW: RNG DAMAGE CALCULATOR ---
+        // --- RNG DAMAGE CALCULATOR ---
         function rollDamage(baseVal) {
-            let variance = Math.max(1, Math.floor(baseVal * 0.25)); // 25% variance, minimum of +/- 1
-            let min = baseVal - variance;
-            let max = baseVal + variance;
+            let variance = Math.max(1, Math.floor(baseVal * 0.25)); 
+            let min = baseVal - variance; let max = baseVal + variance;
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
@@ -466,53 +471,101 @@
 
         function executeCombatRound(actionType) {
             let logEntry = ""; let pDmg = 0; 
+            
+            // Stun Check (Pre-Enemy Turn)
+            let enemyStunnedThisTurn = false;
+            if (player.combat.enemy.stunned > 0) {
+                enemyStunnedThisTurn = true;
+                player.combat.enemy.stunned--;
+            }
+
             let enemyBaseAtk = player.combat.enemy.atk;
-            let enemyDmg = rollDamage(enemyBaseAtk);
+            let enemyDmg = enemyStunnedThisTurn ? 0 : rollDamage(enemyBaseAtk);
             let wpnBonus = 0; if(player.equipment.weapon === "Iron Dagger") wpnBonus = 3; if(player.equipment.weapon === "Rune-Etched Blade") wpnBonus = 6;
 
-            if (actionType === 'strike') { 
-                let base = Math.floor(player.stats.vigor * 1.5) + wpnBonus;
-                pDmg = Math.max(1, rollDamage(base)); 
-                logEntry += `You strike! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `; 
-                player.combat.enemy.hp -= pDmg; 
-            }
-            else if (actionType === 'magic') { 
-                modifyMana(-3); 
-                let base = (player.stats.resonance * 3) + 2;
-                pDmg = Math.max(1, rollDamage(base)); 
-                logEntry += `You channel Resonance! Blasted for <span class='dmg-dealt'>${pDmg} dmg</span>. `; 
-                player.combat.enemy.hp -= pDmg; 
-            }
-            else if (actionType === 'evade') { 
-                let dodgeChance = player.stats.agility * 15; 
-                if (Math.random() * 100 < dodgeChance) { enemyDmg = 0; logEntry += `You swiftly evade the attack! `; } 
-                else { enemyDmg = Math.max(1, enemyDmg - Math.floor(player.stats.agility / 2)); logEntry += `You try to dodge but get clipped. `; } 
-            }
-            else if (actionType === 'heavy_strike') { 
-                modifyHp(-2); 
-                let base = Math.floor(player.stats.vigor * 2.5) + wpnBonus;
-                pDmg = Math.max(1, rollDamage(base)); 
-                logEntry += `You sacrifice your own blood for a Heavy Strike! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `; 
-                player.combat.enemy.hp -= pDmg; 
-            }
-            else if (actionType === 'mend') { 
-                modifyMana(-5); modifyHp(5); logEntry += `You weave a healing thread. <span class='dmg-dealt'>Recovered 5 HP!</span> `; 
-            }
-            else if (actionType === 'shadow_strike') { 
-                modifyMana(-4); 
-                let base = (player.stats.resonance * 2) + (player.stats.agility * 2); 
-                pDmg = Math.max(1, rollDamage(base));
-                enemyDmg = 0; 
-                logEntry += `You meld with the shadows and strike from behind! Dealt <span class='dmg-dealt'>${pDmg} dmg</span> and completely avoided all incoming damage! `; 
-                player.combat.enemy.hp -= pDmg; 
+            // Insight Check (Passive)
+            if (Math.random() * 100 < (player.stats.clarity * 5)) {
+                let bonusXp = Math.floor(Math.random() * 3) + 1; addXp(bonusXp);
+                logEntry += `<span style='color:var(--mana-cyan); font-weight:bold;'>[Sudden Insight!]</span> You understand the flow of battle better. Gained ${bonusXp} XP!<br>`;
             }
 
+            // Player Actions
+            if (actionType === 'strike') {
+                let base = Math.floor(player.stats.vigor * 1.5) + wpnBonus; pDmg = Math.max(1, rollDamage(base));
+                if (Math.random() * 100 < (player.stats.fortune * 5 + player.stats.agility * 2)) {
+                    pDmg *= 2; logEntry += `You strike with <span style='color:var(--accent-hover); font-weight:bold;'>CRITICAL</span> force! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `;
+                } else { logEntry += `You strike! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `; }
+                player.combat.enemy.hp -= pDmg;
+            } else if (actionType === 'magic') {
+                modifyMana(-3); let base = (player.stats.resonance * 3) + 2; pDmg = Math.max(1, rollDamage(base));
+                if (Math.random() * 100 < (player.stats.fortune * 5 + player.stats.clarity * 2)) {
+                    pDmg *= 2; logEntry += `You channel Resonance into a <span style='color:var(--mana-cyan); font-weight:bold;'>CRITICAL</span> blast! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `;
+                } else { logEntry += `You channel Resonance! Blasted for <span class='dmg-dealt'>${pDmg} dmg</span>. `; }
+                player.combat.enemy.hp -= pDmg;
+            } else if (actionType === 'evade') {
+                let dodgeChance = (player.stats.agility * 15) + 40; 
+                if (Math.random() * 100 < dodgeChance) { enemyDmg = 0; logEntry += `You swiftly evade the attack! `; } 
+                else { enemyDmg = Math.max(1, enemyDmg - Math.floor(player.stats.agility / 2) - 1); logEntry += `You try to dodge but get clipped. `; }
+            } else if (actionType === 'block') {
+                let blockAmount = (player.stats.vigor * 2) + 2;
+                enemyDmg = Math.max(0, enemyDmg - blockAmount);
+                logEntry += `You raise your buckler and brace! Blocked up to ${blockAmount} damage. `;
+            } else if (actionType === 'parry') {
+                let parryChance = (player.stats.agility * 10) + (player.stats.fortune * 5);
+                if (Math.random() * 100 < parryChance) {
+                    enemyDmg = 0; player.combat.enemy.stunned = 1;
+                    logEntry += `<span style='color:var(--equip-green); font-weight:bold;'>PARRY SUCCESSFUL!</span> You deflect the blow perfectly, throwing the enemy off balance! `;
+                } else {
+                    enemyDmg = Math.floor(enemyDmg * 1.5);
+                    logEntry += `<span style='color:var(--danger-red); font-weight:bold;'>PARRY FAILED!</span> You mistimed your block and left yourself wide open! `;
+                }
+            } else if (actionType === 'reckless_counter') {
+                let base = Math.floor(player.stats.vigor * 2.5) + wpnBonus; pDmg = Math.max(1, rollDamage(base));
+                logEntry += `You drop your guard completely to trade blows! Dealt a massive <span class='dmg-dealt'>${pDmg} dmg</span>! `;
+                player.combat.enemy.hp -= pDmg;
+                if (!enemyStunnedThisTurn) enemyDmg = Math.floor(enemyDmg * 1.5); // Take extra dmg
+            } else if (actionType === 'staggering_blow') {
+                modifyHp(-1); pDmg = Math.max(1, Math.floor(player.stats.vigor * 0.5));
+                player.combat.enemy.stunned = 1;
+                logEntry += `You deliver a jarring pommel strike! Dealt <span class='dmg-dealt'>${pDmg} dmg</span> and <span style='color:var(--equip-green); font-weight:bold;'>STUNNED</span> the enemy! `;
+                player.combat.enemy.hp -= pDmg;
+            } else if (actionType === 'heavy_strike') {
+                modifyHp(-2); let base = Math.floor(player.stats.vigor * 2.5) + wpnBonus; pDmg = Math.max(1, rollDamage(base));
+                if (Math.random() * 100 < (player.stats.fortune * 5)) {
+                    pDmg = Math.floor(pDmg * 1.5); logEntry += `<span style='color:var(--danger-red); font-weight:bold;'>CRITICAL HEAVY STRIKE!</span> Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `;
+                } else { logEntry += `You sacrifice blood for a Heavy Strike! Dealt <span class='dmg-dealt'>${pDmg} dmg</span>. `; }
+                player.combat.enemy.hp -= pDmg;
+            } else if (actionType === 'mend') {
+                modifyMana(-5); modifyHp(5); logEntry += `You weave a healing thread. <span class='dmg-dealt'>Recovered 5 HP!</span> `;
+            } else if (actionType === 'shadow_strike') {
+                modifyMana(-4); let base = (player.stats.resonance * 2) + (player.stats.agility * 2); pDmg = Math.max(1, rollDamage(base)); enemyDmg = 0; 
+                logEntry += `You meld with the shadows and strike from behind! Dealt <span class='dmg-dealt'>${pDmg} dmg</span> and avoided all incoming damage! `;
+                player.combat.enemy.hp -= pDmg;
+            }
+
+            // Check Enemy Death
             if (player.combat.enemy.hp <= 0) {
                 logEntry += ` <br><br><b>${player.combat.enemy.name} is defeated!</b>`; player.combat.log.unshift(`<div class='combat-log-entry'>${logEntry}</div>`);
                 addXp(player.combat.enemy.xp); player.combat.active = false; updateUI(); renderNode(player.combat.enemy.winTarget); return;
             }
 
-            if (enemyDmg > 0) { logEntry += `<br>The enemy retaliates, dealing <span class='dmg-taken'>${enemyDmg} dmg</span>.`; modifyHp(-enemyDmg); } else if (actionType === 'evade' && enemyDmg === 0) { logEntry += `<br>The enemy misses completely!`; }
+            // Enemy Attack & Passive Dodge logic
+            if (player.combat.enemy.hp > 0) {
+                if (enemyStunnedThisTurn) {
+                    logEntry += `<br>The enemy is <span style='color:var(--equip-green);'>STUNNED</span> and misses their turn!`;
+                } else if (actionType !== 'shadow_strike' && actionType !== 'evade' && actionType !== 'parry' && actionType !== 'block') {
+                    // Passive Evasion check if you didn't do a defensive move
+                    let passiveDodge = (player.stats.agility * 5) + (player.stats.fortune * 2); 
+                    if (Math.random() * 100 < passiveDodge) {
+                        enemyDmg = 0; logEntry += `<br>You rely on your instincts and passively <span style='color:var(--equip-green);'>dodge</span> the attack!`;
+                    }
+                }
+
+                if (enemyDmg > 0) { logEntry += `<br>The enemy attacks, dealing <span class='dmg-taken'>${enemyDmg} dmg</span>.`; modifyHp(-enemyDmg); } 
+                else if (actionType === 'evade' && enemyDmg === 0) { logEntry += `<br>The enemy misses completely!`; }
+                else if (actionType === 'block' && enemyDmg === 0) { logEntry += `<br>The enemy's attack clangs harmlessly off your guard!`; }
+            }
+
             player.combat.log.unshift(`<div class='combat-log-entry'>${logEntry}</div>`);
             if (player.hp <= 0) { player.combat.active = false; updateUI(); renderNode("death"); return; }
             updateUI(); renderCombat();
@@ -524,14 +577,22 @@
             html += player.combat.log.join(""); proseEl.innerHTML = html; choicesEl.innerHTML = ''; 
 
             const btnStrike = document.createElement('button'); btnStrike.className = 'choice-btn'; btnStrike.innerHTML = `⚔️ Strike (Uses Vigor & Weapon)`; btnStrike.onclick = () => executeCombatRound('strike'); choicesEl.appendChild(btnStrike);
+            
             const btnMagic = document.createElement('button'); btnMagic.className = 'choice-btn';
             let manaReq = player.stats.resonance > 0 ? "" : "<span class='req-text'>Requires Resonance Awakened</span>"; let manaCost = player.mana < 3 ? "<span class='req-text req-mana'>Not enough Mana (Needs 3)</span>" : "";
             btnMagic.innerHTML = `✨ Resonance Blast (Uses Resonance. Cost: 3 Mana) ${manaReq} ${manaCost}`; btnMagic.disabled = player.stats.resonance === 0 || player.mana < 3; btnMagic.onclick = () => executeCombatRound('magic'); choicesEl.appendChild(btnMagic);
-            const btnEvade = document.createElement('button'); btnEvade.className = 'choice-btn'; btnEvade.innerHTML = `💨 Evade (Uses Agility to dodge/reduce damage)`; btnEvade.onclick = () => executeCombatRound('evade'); choicesEl.appendChild(btnEvade);
+            
+            const btnEvade = document.createElement('button'); btnEvade.className = 'choice-btn'; btnEvade.innerHTML = `💨 Evade (High dodge chance, reduces damage on fail)`; btnEvade.onclick = () => executeCombatRound('evade'); choicesEl.appendChild(btnEvade);
 
+            // DYNAMIC SKILLS & EQUIP ACTIONS
+            if (player.equipment.accessory === "Iron Buckler") { const btnBlock = document.createElement('button'); btnBlock.className = 'choice-btn'; btnBlock.innerHTML = `🛡️ Block (Uses Vigor/Armor to absorb damage)`; btnBlock.onclick = () => executeCombatRound('block'); choicesEl.appendChild(btnBlock); }
+
+            if (player.skills.includes("Parry")) { const btnParry = document.createElement('button'); btnParry.className = 'choice-btn'; btnParry.innerHTML = `⚔️ Parry (Agility check. Negates damage & Stuns. High damage on fail.)`; btnParry.onclick = () => executeCombatRound('parry'); choicesEl.appendChild(btnParry); }
+            if (player.skills.includes("Reckless Counter")) { const btnTrade = document.createElement('button'); btnTrade.className = 'choice-btn'; btnTrade.innerHTML = `🩸 Reckless Counter (Take 1.5x damage to deal massive damage.)`; btnTrade.onclick = () => executeCombatRound('reckless_counter'); choicesEl.appendChild(btnTrade); }
+            if (player.skills.includes("Staggering Blow")) { const btnStagger = document.createElement('button'); btnStagger.className = 'choice-btn'; let hpCost = player.hp <= 1 ? "<span class='req-text'>HP too low</span>" : ""; btnStagger.innerHTML = `👊 Staggering Blow (Low Dmg. Cost: 1 HP. Guarantees Stun.) ${hpCost}`; btnStagger.disabled = player.hp <= 1; btnStagger.onclick = () => executeCombatRound('staggering_blow'); choicesEl.appendChild(btnStagger); }
             if (player.skills.includes("Heavy Strike")) { const btnHeavy = document.createElement('button'); btnHeavy.className = 'choice-btn'; let hpCost = player.hp <= 2 ? "<span class='req-text'>HP too low (Needs > 2)</span>" : ""; btnHeavy.innerHTML = `💥 Heavy Strike (Massive Dmg. Cost: 2 HP) ${hpCost}`; btnHeavy.disabled = player.hp <= 2; btnHeavy.onclick = () => executeCombatRound('heavy_strike'); choicesEl.appendChild(btnHeavy); }
             if (player.skills.includes("Mend")) { const btnMend = document.createElement('button'); btnMend.className = 'choice-btn'; let mendManaCost = player.mana < 5 ? "<span class='req-text req-mana'>Not enough Mana (Needs 5)</span>" : ""; btnMend.innerHTML = `🌿 Mend (Heals 5 HP. Cost: 5 Mana) ${mendManaCost}`; btnMend.disabled = player.mana < 5; btnMend.onclick = () => executeCombatRound('mend'); choicesEl.appendChild(btnMend); }
-            if (player.skills.includes("Shadow Strike")) { const btnShadow = document.createElement('button'); btnShadow.className = 'choice-btn'; let shadowManaCost = player.mana < 4 ? "<span class='req-text req-mana'>Not enough Mana (Needs 4)</span>" : ""; btnShadow.innerHTML = `🌘 Shadow Strike (Dmg + 100% Dodge. Cost: 4 Mana) ${shadowManaCost}`; btnShadow.disabled = player.mana < 4; btnShadow.onclick = () => executeCombatRound('shadow_strike'); choicesEl.appendChild(btnShadow); }
+            if (player.skills.includes("Shadow Strike")) { const btnShadow = document.createElement('button'); btnShadow.className = 'choice-btn'; let shadowManaCost = player.mana < 4 ? "<span class='req-text req-mana'>Not enough Mana (Needs 4)</span>" : ""; btnShadow.innerHTML = `🌘 Shadow Strike (Dmg + Guaranteed Dodge. Cost: 4 Mana) ${shadowManaCost}`; btnShadow.disabled = player.mana < 4; btnShadow.onclick = () => executeCombatRound('shadow_strike'); choicesEl.appendChild(btnShadow); }
         }
 
         // --- TRANSITION HANDLER ---
@@ -603,6 +664,7 @@
                 if (choice.text.includes("Equip Rune-Etched Blade") && player.equipment.weapon === "Rune-Etched Blade") hideChoice = true;
                 if (choice.text.includes("Equip Traveler's Cloak") && player.equipment.armor === "Traveler's Cloak") hideChoice = true;
                 if (choice.text.includes("Equip Hunter's Leather") && player.equipment.armor === "Hunter's Leather") hideChoice = true;
+                if (choice.text.includes("Equip Iron Buckler") && player.equipment.accessory === "Iron Buckler") hideChoice = true;
                 if (choice.text.includes("Equip Resonance Amulet") && player.equipment.accessory === "Resonance Amulet") hideChoice = true;
                 if (choice.text.includes("Equip Vane Signet Ring") && player.equipment.accessory === "Vane Signet Ring") hideChoice = true;
 
