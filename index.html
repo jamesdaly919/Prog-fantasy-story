@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ascendant's Loom</title>
+    <style>
+        :root {
+            --bg-color: #121212; --panel-bg: #1e1e1e; --text-main: #e0e0e0;
+            --accent-gold: #d4af37; --accent-hover: #f1c40f; --border-color: #333;
+            --danger-red: #c0392b; --heal-green: #27ae60; --event-purple: #8e44ad;
+            --xp-blue: #2980b9; --mana-cyan: #00bcd4; --time-silver: #bdc3c7;
+            --equip-green: #2ecc71; --combat-red: #8b0000; --sp-orange: #e67e22;
+            --dungeon-teal: #1abc9c; --craft-bronze: #cd7f32; --ascend-white: #ffffff;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Georgia', serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        #sidebar { width: 320px; background-color: var(--panel-bg); border-right: 2px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+
+        h1, h2, h3 { color: var(--accent-gold); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.05rem; }
+        .stat-value { font-weight: bold; color: var(--accent-gold); }
+        .hp-text { color: var(--danger-red); font-weight: bold; }
+        .mana-text { color: var(--mana-cyan); font-weight: bold; }
+        .sp-text { color: var(--sp-orange); font-weight: bold; }
+        .faction-text { color: #fff; font-style: italic; }
+        .time-text { color: var(--time-silver); font-size: 0.95rem; }
+        .equip-text { color: var(--equip-green); font-size: 0.95rem;}
+
+        .sys-btn-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .sys-btn { flex: 1; padding: 8px; background-color: #333; color: white; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; font-family: 'Georgia', serif; }
+        .sys-btn:hover { background-color: var(--accent-gold); color: black; }
+
+        #main-area { flex-grow: 1; display: flex; flex-direction: column; padding: 40px; max-width: 800px; margin: 0 auto; }
+        #prose-container { flex-grow: 1; font-size: 1.25rem; line-height: 1.6; overflow-y: auto; margin-bottom: 20px; padding-right: 20px; }
+
+        .fade-in { animation: fadeIn 0.4s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        #choices-container { display: flex; flex-direction: column; gap: 15px; }
+
+        button.choice-btn {
+            background-color: var(--panel-bg); color: var(--text-main); border: 1px solid var(--accent-gold);
+            padding: 15px 20px; font-size: 1.1rem; font-family: 'Georgia', serif; text-align: left; cursor: pointer;
+            transition: all 0.2s; border-radius: 4px;
+        }
+
+        button.choice-btn:hover { background-color: var(--accent-gold); color: var(--bg-color); }
+        button.choice-btn:disabled { border-color: var(--border-color); color: #666; cursor: not-allowed; background-color: transparent; }
+        
+        .req-text { font-size: 0.85rem; color: var(--danger-red); display: block; margin-top: 5px; }
+        .req-mana { color: var(--mana-cyan); }
+        .req-sp { color: var(--sp-orange); }
+
+        .event-text { color: var(--event-purple); font-style: italic
